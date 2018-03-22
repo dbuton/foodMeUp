@@ -2,21 +2,40 @@
 
 namespace App\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+
+/**
+ * @ORM\Entity(
+ *      repositoryClass="App\Repository\UnitRepository",
+ *     )
+ * @ORM\Table(name="unit"
+ *     )
+ */
 class Unit
 {
     /**
-     * @var integer
+     * @ORM\Column(type="string")
+     * @ORM\Id
+     *
+     * @var string
      */
     private $id;
     /**
+     * @ORM\Column(type="string", nullable=false)
      * @var string
      */
     private $name;
     /**
+     * @ORM\Column(type="float", nullable=true)
      * @var float
      */
     private $quantity;
     /**
+    /**
+     * @ORM\ManyToOne(targetEntity="Unit")
+     * @0RM\JoinColumn(name="reference_unit_id", referencedColumnName="id")
+     *
      * @var Unit
      */
     private $referenceUnit;
@@ -36,9 +55,9 @@ class Unit
     }
 
     /**
-     * @return int
+     * @return string
      */
-    public function getId()
+    public function getId(): string
     {
         return $this->id;
     }
@@ -46,15 +65,15 @@ class Unit
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
     /**
-     * @return float
+     * @return float|null
      */
-    public function getQuantity()
+    public function getQuantity(): ? float
     {
         return $this->quantity;
     }
@@ -62,7 +81,7 @@ class Unit
     /**
      * @return Unit
      */
-    public function getReferenceUnit()
+    public function getReferenceUnit(): ? Unit
     {
         return $this->referenceUnit;
     }
