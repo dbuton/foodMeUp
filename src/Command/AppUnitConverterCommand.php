@@ -17,6 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class AppUnitConverterCommand extends Command
 {
     protected static $defaultName = 'app:unit-converter';
+
     /**
      * @var UnitRepository
      */

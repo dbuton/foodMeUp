@@ -3,34 +3,42 @@
 namespace App\Command;
 
 use App\Entity\Category;
-use App\Repository\CategoryRepository;
+use App\Helper\CategoryHelper;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class CategoryAddCommand extends Command
+class CategoryModifyCommand extends Command
 {
-    protected static $defaultName = 'app:category-crud';
+    protected static $defaultName = 'app:category-modify';
 
     /**
-     * @var CategoryRepository
+     * @var EntityManagerInterface
      */
-    private $categoryRepository;
+    private $entityManager;
+    /**
+     * @var CategoryHelper
+     */
+    private $categoryHelper;
 
     /**
-     * CategoryCrudCommand constructor.
+     * CategoryModifyCommand constructor.
      *
      * @param EntityManagerInterface $entityManager
+     * @param CategoryHelper         $categoryHelper
      * @param null                   $name
      */
-    public function __construct(EntityManagerInterface $entityManager, $name = null)
+    public function __construct(
+        EntityManagerInterface $entityManager,
+        CategoryHelper $categoryHelper,
+        $name = null
+    )
     {
         parent::__construct($name);
-        $this->categoryRepository = $entityManager->getRepository(Category::class);
+        $this->entityManager = $entityManager;
+        $this->categoryHelper = $categoryHelper;
     }
 
     /**
@@ -38,52 +46,41 @@ class CategoryAddCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Add or modify category')
+            ->setDescription('Modify category')
             ->addArgument('name', InputArgument::REQUIRED, 'Name of category to add or modify')
-            ->addArgument('method', InputArgument::REQUIRED, 'POST or PUT')
-            ->addOption('new-name', null, InputOption::VALUE_REQUIRED, 'New name for POST method')
+            ->addArgument('new-name', null, InputArgument::REQUIRED, 'New name for POST method')
         ;
     }
 
     /**
      * @param InputInterface  $input
      * @param OutputInterface $output
+     *
+     * @throws \Exception
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $name   = $input->getArgument('name');
-        $method = $this->getMethod($input->getArgument('method'));
-        $newName = $input->getOption('new-name');
+        $newName = $input->getArgument('new-name');
 
-        if ($method === self::METHOD_PUT && $newName === null) {
-            throw new \Exception('You must specified a new name.');
-        }
 
-        if ($method === self::METHOD_POST) {
-            $category = new Category($name);
-            $this->categoryRepository->save($category);
-        } else {
-            $category = $this->categoryRepository->findOneBy(
-                ['name' => $name]
+        $category = $this->entityManager->getRepository(Category::class)->findOneBy(
+            ['name' => $name]
+        );
+
+        if ($category === null) {
+            throw new \Exception(
+                sprintf(
+                    'Category %s not found',
+                    $name
+                )
             );
-
-            $category->setName($newName);
         }
 
-    }
+        $category->setName($newName);
+        $this->entityManager->persist($category);
 
-    /**
-     * @param $method
-     *
-     * @return string
-     */
-    public function getMethod($method) : string
-    {
-
-        if (false === in_array($method, [self::METHOD_POST, self::METHOD_PUT])) {
-            throw new Exception('Method must be POST or PUT');
-        }
-
-        return $method;
+        $this->categoryHelper->processChildrenTree($category);
+        $this->entityManager->flush();
     }
 }
